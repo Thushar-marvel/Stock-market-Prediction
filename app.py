@@ -335,7 +335,7 @@ if Ndays>0:
 		# Show and plot forecast
 		st.subheader('Forecasted data')
 		st.write(predictions)
-		st.write(predictions.iloc[0])
+# 		st.write(predictions.iloc[0])
 
 		st.write(f'Forecast plot for {Ndays} days')
 
