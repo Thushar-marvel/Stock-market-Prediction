@@ -328,14 +328,14 @@ if Ndays>0:
 		predict_state.text("Please wait............")
 
 		predictions = predictFuture(Ndays,x_train,y_train)
-# 		predictions.iloc[0] =  0
+# 		predictions.iloc[0] =  df_train.iloc[-1]
 #                 predictions["Date"].iloc[0] = data["Date"].iloc[-1]
 # 		predictions["pred"].iloc[0] = data["Close"].iloc[-1]
 		predict_state.text("Done")
 		# Show and plot forecast
 		st.subheader('Forecasted data')
 		st.write(predictions)
-		st.write(df_train)
+		st.write(predictions.iloc[0])
 
 		st.write(f'Forecast plot for {Ndays} days')
 
