@@ -332,7 +332,7 @@ if Ndays>0:
 		predict_state.text("Done")
 		# Show and plot forecast
 		st.subheader('Forecasted data')
-		st.write(predictions.head(20))
+		st.write(predictions)
 
 		st.write(f'Forecast plot for {Ndays} days')
 
