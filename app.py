@@ -328,6 +328,7 @@ if Ndays>0:
 		predict_state.text("Please wait............")
 
 		predictions = predictFuture(Ndays,x_train,y_train)
+		predictions.iloc[0] =  data['Date'].iloc[-1]
 		predict_state.text("Done")
 		# Show and plot forecast
 		st.subheader('Forecasted data')
@@ -337,7 +338,7 @@ if Ndays>0:
 
 		fig = go.Figure()
 		fig.add_trace(go.Scatter(x=predictions['Date'], y=predictions['pred'],name="Prediction"))
-		fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
+		fig.add_trace(go.Scatter(x=data['Date'].tail(1000), y=data['Close'].tail(1000), name="stock_close"))
 		st.plotly_chart(fig)
 
 		st.write("Percentage gain or loss for next {} days prediction ".format(Ndays))
