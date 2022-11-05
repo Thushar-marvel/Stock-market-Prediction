@@ -337,7 +337,7 @@ if Ndays>0:
 
 		fig = go.Figure()
 		fig.add_trace(go.Scatter(x=predictions['Date'], y=predictions['pred'],name="Prediction"))
-		fig.add_trace(go.Scatter(x=data.tail(365)['Date'], y=data.tail(365)['Close'], name="stock_close"))
+		fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
 		st.plotly_chart(fig)
 
 		st.write("Percentage gain or loss for next {} days prediction ".format(Ndays))
