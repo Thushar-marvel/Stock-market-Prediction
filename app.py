@@ -328,7 +328,7 @@ if Ndays>0:
 		predict_state.text("Please wait............")
 
 		predictions = predictFuture(Ndays,x_train,y_train)
-		predictions.iloc[0] =  data.iloc[-1]
+# 		predictions.iloc[0] =  data.iloc[-1]
 		predict_state.text("Done")
 		# Show and plot forecast
 		st.subheader('Forecasted data')
