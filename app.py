@@ -20,7 +20,7 @@ START = "2015-01-01"
 TODAY = date.today().strftime("%Y-%m-%d")
 
 
-st.title('Stock Prediction web App')
+st.title('Stock Prediction Web App')
 
 # stocks = ('GOOG', 'AAPL', 'MSFT', 'GME')
 stocks = ('AAPL' ,"GOOG" ,"TSLA" ,"AMZN")
