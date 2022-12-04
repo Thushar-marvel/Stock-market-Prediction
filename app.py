@@ -334,7 +334,7 @@ if Ndays>0:
 
 	y_test = inputData["Close"].tail(100)
 	x_test = inputData.drop(["Close"], axis=1).tail(100)
-	xtrain = inputData.drop(["Close"], axis=1)[0:-100,:]
+	xtrain = inputData.drop(["Close"], axis=1).iloc[0:-100,:]
 	ytrain = inputData["Close"][0:-100,:]
 	sX_train = MinMaxScaler(feature_range=(0, 1))
 	sY_train = MinMaxScaler(feature_range=(0, 1))
