@@ -384,7 +384,7 @@ if Ndays>0:
 		st.write("Predicted price is {} on {} ".format(predictions["pred"].iloc[-1],predictions["Date"].iloc[-1]))
 		profit = ((predictions["pred"].iloc[-1] - data['Close'].iloc[-1]  ) / data['Close'].iloc[-1])* 100
 		st.write("{} percentage".format(np.round(profit,3)))
-		for i in range(10):
+		for i in range(3):
 			st.write("*"*3)
 		
 
