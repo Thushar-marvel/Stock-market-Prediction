@@ -40,6 +40,7 @@ def load_data(ticker):
 data_load_state = st.text('Loading data...')
 data = load_data(selected_stock)
 data_load_state.text('Loading data... done!')
+flag1 = 0
 
 
 # Predict forecast with Prophet.
@@ -60,7 +61,7 @@ if stocks == "TSLA":
 	lstmModel = tf.keras.models.load_model("modelLSTMtsl.h5")
 
 latestData = pd.DataFrame(df_train)
-latestData = latestData.tail(250)
+latestData = latestData.tail(365)
 
 st.subheader('Raw data')
 st.write(data.tail())
@@ -140,7 +141,7 @@ def preprocessData(aplData):
 	aplData['HWES2_MUL'] = doubleExSmoothing(aplData, 'Close', 50, 'multiplicative')
 
 	aplData = aplData.iloc[:-1]
-	aplData = aplData.tail(50)
+	# aplData = aplData.tail(50)
 	aplData.reset_index(inplace=True)
 	aplData = aplData.drop(['index'], axis=1)
 	return aplData
@@ -311,15 +312,8 @@ def predictFuture(Nday,X_train,y_train):
 
 	return predictions
 
-def modelTrain(xtrain,ytrain,epochs = 50):
-	modelLSTM = Sequential()
-	modelLSTM.add(LSTM(units=100,return_sequences=True, input_shape=(xtrain.shape[1],1)))
-	modelLSTM.add(Dropout(0.2))
-	modelLSTM.add(LSTM(units=100, return_sequences=True))
-	modelLSTM.add(Dropout(0.2))
-	modelLSTM.add(LSTM(units=50))
-	modelLSTM.add(Dropout(0.2))
-	modelLSTM.add(Dense(units=1))	
+def modelTrain(xtrain,ytrain,modelLSTM,epochs = 50):
+
 	modelLSTM.compile(loss = 'mae', optimizer='adam')
 	modelLSTM.fit(xtrain, ytrain, epochs=epochs, batch_size=16)
 	return modelLSTM
@@ -331,10 +325,11 @@ Ndays = n_days
 if Ndays>0:
 	predict_state = st.text('Processing Data, Please wait...')
 	inputData = preprocessData(latestData)
+	predict_state.text('')
 
 	y_test = inputData["Close"].tail(100)
 	x_test = inputData.drop(["Close"], axis=1).tail(100)
-	modelData = inputData.iloc[0:-100,:]
+	modelData = inputData.iloc[51:-100,:]
 	xtrain = modelData.drop(["Close"], axis=1)
 	ytrain = modelData["Close"]
 	sX_train = MinMaxScaler(feature_range=(0, 1))
@@ -350,22 +345,29 @@ if Ndays>0:
 	X_valLSTM = sX_val.fit_transform(np.array(x_test.drop(["Date"], axis=1))).reshape(x_test.shape[0],
 																					   x_test.shape[1] - 1, 1)
 	y_valLSTM = sY_val.fit_transform(np.array(y_test).reshape(-1, 1)).reshape(y_test.shape[0], )
-	predict_state.text(' Done!,Click on predict')
-	predict_state.text("Please click the below button, if wanted to update the model by re training in with latest data")
-	if st.button("Re-Train Model"):
-		predict_state.text(' Training')
-		lstmModel = modelTrain(X_train,Y_train)
-		predict_state.text(' Trained')
+
+	st.write("Re-train : This will update the existing model by re training it with latest data ")
+
+	st.write("Predict : Predicts the future stock price")
+	predict_state1 = st.text("Click the below button, if wanted to update the model")
+
+	
+	if st.button("Re-Train Model (optional)time < 3 min)"):
+		predict_state1.text(' Training..')
+		lstmModel = modelTrain(X_train,Y_train,lstmModel)
+		predict_state1.text(' Finished!. Click on predict')
 
 
 	if st.button("Predict"):
-		predict_state.text("Please wait............")
+		predict_state1.text("Please wait..")
+
 
 		predictions = predictFuture(Ndays,x_test,y_test)
+		st.write("Prediction is Done!,results are displayed below")
 # 		predictions.iloc[0] =  df_train.iloc[-1]
 #                 predictions["Date"].iloc[0] = data["Date"].iloc[-1]
 # 		predictions["pred"].iloc[0] = data["Close"].iloc[-1]
-		predict_state.text("Done")
+		predict_state1.text("Done")
 		# Show and plot forecast
 		st.subheader('Forecasted data')
 		st.write(predictions)
@@ -379,9 +381,14 @@ if Ndays>0:
 		st.plotly_chart(fig)
 
 		st.write("Percentage gain or loss for next {} days prediction ".format(Ndays))
-		st.write("Predict price is {} ".format(predictions["pred"].iloc[-1]))
+		st.write("Predicted price is {} on {} ".format(predictions["pred"].iloc[-1],predictions["Date"].iloc[-1]))
 		profit = ((predictions["pred"].iloc[-1] - data['Close'].iloc[-1]  ) / data['Close'].iloc[-1])* 100
 		st.write("{} percentage".format(np.round(profit,3)))
+		for i in range(10):
+			st.write("*"*3)
+		
+
+		st.write("Note : Models are trained only based on technical data. Future plans are to include both fundamental and economical factors real timely to get a robust prediction.")
 		
 
 
