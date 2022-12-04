@@ -1,6 +1,6 @@
 # pip install streamlit fbprophet yfinance plotly
 import streamlit as st
-import sklearn
+# import sklearn
 from datetime import date
 
 import yfinance as yf
@@ -8,6 +8,8 @@ import tensorflow as tf
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+from tensorflow.keras.models import Sequential, load_model
+from tensorflow.keras.layers import LSTM, Dense, Dropout
 
 import datetime
 
@@ -25,6 +27,8 @@ st.title('Stock Prediction Web App')
 # stocks = ('GOOG', 'AAPL', 'MSFT', 'GME')
 stocks = ('AAPL' ,"GOOG" ,"TSLA" ,"AMZN")
 selected_stock = st.selectbox('Select dataset for prediction', stocks)
+
+
 
 
 @st.cache
@@ -55,8 +59,8 @@ if stocks == "TSLA":
 	st.subheader('TESLA Stock')
 	lstmModel = tf.keras.models.load_model("modelLSTMtsl.h5")
 
-latest100Data = pd.DataFrame(df_train)
-latest100Data = latest100Data.tail(100)
+latestData = pd.DataFrame(df_train)
+latestData = latestData.tail(250)
 
 st.subheader('Raw data')
 st.write(data.tail())
@@ -307,27 +311,56 @@ def predictFuture(Nday,X_train,y_train):
 
 	return predictions
 
+def modelTrain(xtrain,ytrain,epochs = 50):
+	modelLSTM = Sequential()
+	modelLSTM.add(LSTM(units=100,return_sequences=True, input_shape=(xtrain.shape[1],1)))
+	modelLSTM.add(Dropout(0.2))
+	modelLSTM.add(LSTM(units=100, return_sequences=True))
+	modelLSTM.add(Dropout(0.2))
+	modelLSTM.add(LSTM(units=50))
+	modelLSTM.add(Dropout(0.2))
+	modelLSTM.add(Dense(units=1))	
+	modelLSTM.compile(loss = 'mae', optimizer='adam')
+	modelLSTM.fit(xtrain, ytrain, epochs=epochs, batch_size=16)
+	return modelLSTM
+    
 
 n_days = st.slider('Please enter number of days for prediction:', 0, 365)
 period = n_days
 Ndays = n_days
 if Ndays>0:
 	predict_state = st.text('Processing Data, Please wait...')
-	inputData = preprocessData(latest100Data)
+	inputData = preprocessData(latestData)
 
-	y_train = inputData["Close"]
-	x_train = inputData.drop(["Close"], axis=1)
+	y_test = inputData["Close"].tail(100)
+	x_test = inputData.drop(["Close"], axis=1).tail(100)
+	xtrain = inputData.drop(["Close"], axis=1)[0:-100,:]
+	ytrain = inputData["Close"][0:-100,:]
+	sX_train = MinMaxScaler(feature_range=(0, 1))
+	sY_train = MinMaxScaler(feature_range=(0, 1))
+
+	X_train = sX_train.fit_transform(np.array(xtrain.drop(["Date"], axis=1))).reshape(xtrain.shape[0],
+																					   xtrain.shape[1] - 1, 1)
+	Y_train = sY_train.fit_transform(np.array(ytrain).reshape(-1, 1)).reshape(ytrain.shape[0], )
+
 
 	sX_val = MinMaxScaler(feature_range=(0, 1))
 	sY_val = MinMaxScaler(feature_range=(0, 1))
-	X_valLSTM = sX_val.fit_transform(np.array(x_train.drop(["Date"], axis=1))).reshape(x_train.shape[0],
-																					   x_train.shape[1] - 1, 1)
-	y_valLSTM = sY_val.fit_transform(np.array(y_train).reshape(-1, 1)).reshape(y_train.shape[0], )
+	X_valLSTM = sX_val.fit_transform(np.array(x_test.drop(["Date"], axis=1))).reshape(x_test.shape[0],
+																					   x_test.shape[1] - 1, 1)
+	y_valLSTM = sY_val.fit_transform(np.array(y_test).reshape(-1, 1)).reshape(y_test.shape[0], )
 	predict_state.text(' Done!,Click on predict')
+	predict_state.text("Please click the below button, if wanted to update the model by re training in with latest data")
+	if st.button("Re-Train Model"):
+		predict_state.text(' Training')
+		lstmModel = modelTrain(X_train,Y_train)
+		predict_state.text(' Trained')
+
+
 	if st.button("Predict"):
 		predict_state.text("Please wait............")
 
-		predictions = predictFuture(Ndays,x_train,y_train)
+		predictions = predictFuture(Ndays,x_test,y_test)
 # 		predictions.iloc[0] =  df_train.iloc[-1]
 #                 predictions["Date"].iloc[0] = data["Date"].iloc[-1]
 # 		predictions["pred"].iloc[0] = data["Close"].iloc[-1]
@@ -348,4 +381,6 @@ if Ndays>0:
 		st.write("Predict price is {} ".format(predictions["pred"].iloc[-1]))
 		profit = ((predictions["pred"].iloc[-1] - data['Close'].iloc[-1]  ) / data['Close'].iloc[-1])* 100
 		st.write("{} percentage".format(np.round(profit,3)))
+		
+
 
