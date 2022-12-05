@@ -354,8 +354,14 @@ if Ndays>0:
 	
 	if st.button("Re-Train Model (optional)time < 3 min)"):
 		predict_state1.text(' Training..')
+		i = 0
+		while i > 0 && flag1 < 1:
+			predict_state1.text(' Training..' + "."*i)
+			i+=1
 		lstmModel = modelTrain(X_train,Y_train,lstmModel)
 		predict_state1.text(' Finished!. Click on predict')
+		flag1 = 1
+		
 
 
 	if st.button("Predict"):
