@@ -23,6 +23,7 @@ TODAY = date.today().strftime("%Y-%m-%d")
 
 
 st.title('Stock Prediction Web App')
+st.title('Sorry,there is some issue, will try to resolve as earlier as possible.')
 
 # stocks = ('GOOG', 'AAPL', 'MSFT', 'GME')
 stocks = ('AAPL' ,"GOOG" ,"TSLA" ,"AMZN")
