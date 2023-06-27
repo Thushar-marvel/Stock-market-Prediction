@@ -23,16 +23,16 @@ TODAY = date.today().strftime("%Y-%m-%d")
 
 
 st.title('Stock Prediction Web App')
-st.title('Sorry,there is some issue, will try to resolve as earlier as possible.')
 
 # stocks = ('GOOG', 'AAPL', 'MSFT', 'GME')
-stocks = ('AAPL' ,"GOOG" ,"TSLA" ,"AMZN")
+stocks = ("AMZN","AAPL","TSLA" ,"GOOG" )
 selected_stock = st.selectbox('Select dataset for prediction', stocks)
 
 
 
 
-@st.cache
+
+@st.cache_resource
 def load_data(ticker):
     data = yf.download(ticker, START, TODAY)
     data.reset_index(inplace=True)
@@ -42,22 +42,24 @@ data_load_state = st.text('Loading data...')
 data = load_data(selected_stock)
 data_load_state.text('Loading data... done!')
 flag1 = 0
+isDone = False
 
 
 # Predict forecast with Prophet.
 df_train = data[['Date','Close']]
 # df_train = df_train.rename(columns={"Date": "ds", "Close": "y"})
 lstmModel = tf.keras.models.load_model("LSTM_StockPred.h5")
-if stocks == "AAPL":
+updatedModel = Sequential()
+if selected_stock == "AAPL":
 	st.subheader('APPLE Stock')
-if stocks == 'AMZN':
+if selected_stock == 'AMZN':
 	st.subheader('AMAZON Stock')
 	lstmModel = tf.keras.models.load_model("modelLSTMamz.h5")
-if stocks == "GOOG":
+if selected_stock == "GOOG":
 	st.subheader('GOOGLE Stock')
 	lstmModel = tf.keras.models.load_model("modelLSTMgog.h5")
 
-if stocks == "TSLA":
+if selected_stock == "TSLA":
 	st.subheader('TESLA Stock')
 	lstmModel = tf.keras.models.load_model("modelLSTMtsl.h5")
 
@@ -69,13 +71,12 @@ st.write(data.tail())
 
 def plot_raw_data():
 	fig = go.Figure()
-	fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="stock_open"))
-	fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close"))
+	fig.add_trace(go.Scatter(x=data['Date'], y=data['Open'], name="stock_open",line=dict(color='blue')))
+	fig.add_trace(go.Scatter(x=data['Date'], y=data['Close'], name="stock_close",line=dict(color='red')))
 	# fig.layout.update(title_text='Time Series data with Rangeslider', xaxis_rangeslider_visible=True)
 	st.plotly_chart(fig)
-
-
 plot_raw_data()
+
 
 def preprocessData(aplData):
 
@@ -146,8 +147,6 @@ def preprocessData(aplData):
 	aplData.reset_index(inplace=True)
 	aplData = aplData.drop(['index'], axis=1)
 	return aplData
-
-
 
 def extract_date_features(date_val):
 	Day = date_val.day
@@ -254,7 +253,7 @@ def extractFeatures(lastFeatures, y_train, date):
 
 	return currentData
 
-def predictFuture(Nday,X_train,y_train):
+def predictFuture(Nday,X_train,y_train,model):
 	lastFeatures, lastPriceValues = pd.DataFrame(X_train).tail(50), y_train.tail(50)
 	date = "{}/{}/{}".format(int(lastFeatures.iloc[-1]['Month']), int(lastFeatures.iloc[-1]['Day']),
 							 int(lastFeatures.iloc[-1]['Year']))
@@ -294,7 +293,7 @@ def predictFuture(Nday,X_train,y_train):
 			inpu = inpu.reshape(1, X_train.shape[1]-1, 1)
 
 
-			pred = lstmModel.predict(inpu, verbose=0)
+			pred = model.predict(inpu, verbose=0)
 
 
 			pred = sY_val.inverse_transform(pred.reshape(-1, 1))
@@ -313,8 +312,8 @@ def predictFuture(Nday,X_train,y_train):
 
 	return predictions
 
-def modelTrain(xtrain,ytrain,modelLSTM,epochs = 50):
-
+def modelTrain(xtrain,ytrain,modelLSTMs,epochs = 50):
+	modelLSTM = modelLSTMs
 	modelLSTM.compile(loss = 'mae', optimizer='adam')
 	modelLSTM.fit(xtrain, ytrain, epochs=epochs, batch_size=16)
 	return modelLSTM
@@ -323,7 +322,8 @@ def modelTrain(xtrain,ytrain,modelLSTM,epochs = 50):
 n_days = st.slider('Please enter number of days for prediction:', 0, 365)
 period = n_days
 Ndays = n_days
-if Ndays>0:
+
+if Ndays>0  :
 	predict_state = st.text('Processing Data, Please wait...')
 	inputData = preprocessData(latestData)
 	predict_state.text('')
@@ -347,30 +347,29 @@ if Ndays>0:
 																					   x_test.shape[1] - 1, 1)
 	y_valLSTM = sY_val.fit_transform(np.array(y_test).reshape(-1, 1)).reshape(y_test.shape[0], )
 
-	st.write("Re-train : This will update the existing model by re training it with latest data ")
-
-	st.write("Predict : Predicts the future stock price")
+	st.write("Re-train : This will update the existing model by re training it with latest data and predicts the price")
+	st.write("**********************************************************************************")
+	st.write("Predict : Predicts the future stock price using old trained model")
 	predict_state1 = st.text("Click the below button, if wanted to update the model")
 
 	
-	if st.button("Re-Train Model (optional)time < 3 min)"):
+	if st.button("Re-Train Model and Predict(optional)time < 3 min)"):
 		predict_state1.text(' Training...')
 		predict_state1.text(' Training..........')
 		predict_state1.text(' Training.........................')
 		predict_state1.text(' Training.......................................')
 		predict_state1.text(' Training......................................................')
 		
-		lstmModel = modelTrain(X_train,Y_train,lstmModel)
-		predict_state1.text(' Finished!. Click on predict')
+		updatedModel = modelTrain(X_train,Y_train,lstmModel)
+		# predict_state1.text(' Finished!. Click on predict')
 		flag1 = 1
-		
-
-
-	if st.button("Predict"):
 		predict_state1.text("Please wait..")
 
-
-		predictions = predictFuture(Ndays,x_test,y_test)
+        
+		
+		# model = lstmModel if flag1==0 else updatedModel
+		# st.write("is flag1 {}".format(str(flag1)))
+		predictions = predictFuture(Ndays,x_test,y_test,updatedModel)
 		st.write("Prediction is Done!,results are displayed below")
 # 		predictions.iloc[0] =  df_train.iloc[-1]
 #                 predictions["Date"].iloc[0] = data["Date"].iloc[-1]
@@ -397,6 +396,43 @@ if Ndays>0:
 		
 
 		st.write("Note : Models are trained only based on technical data. Future plans are to include both fundamental and economical factors real timely to get a robust prediction.")
+
+
+
+	if st.button("Predict using pre trained model") :
+		predict_state1.text("Please wait..")
+
+        
 		
+		# model = lstmModel if flag1==0 else updatedModel
+		# st.write("is flag1 {}".format(str(flag1)))
+		predictions = predictFuture(Ndays,x_test,y_test,lstmModel)
+		st.write("Prediction is Done!,results are displayed below")
+# 		predictions.iloc[0] =  df_train.iloc[-1]
+#                 predictions["Date"].iloc[0] = data["Date"].iloc[-1]
+# 		predictions["pred"].iloc[0] = data["Close"].iloc[-1]
+		predict_state1.text("Done")
+		# Show and plot forecast
+		st.subheader('Forecasted data')
+		st.write(predictions)
+# 		st.write(predictions.iloc[0])
+
+		st.write(f'Forecast plot for {Ndays} days')
+
+		fig = go.Figure()
+		fig.add_trace(go.Scatter(x=predictions['Date'], y=predictions['pred'],name="Prediction"))
+		fig.add_trace(go.Scatter(x=data['Date'].tail(1000), y=data['Close'].tail(1000), name="stock_close"))
+		st.plotly_chart(fig)
+
+		st.write("Percentage gain or loss for next {} days prediction ".format(Ndays))
+		st.write("Predicted price is {} on {} ".format(predictions["pred"].iloc[-1],predictions["Date"].iloc[-1]))
+		profit = ((predictions["pred"].iloc[-1] - data['Close'].iloc[-1]  ) / data['Close'].iloc[-1])* 100
+		st.write("{} percentage".format(np.round(profit,3)))
+		for i in range(3):
+			st.write("*"*3)
+		
+
+		st.write("Note : Models are trained only based on technical data. Future plans are to include both fundamental and economical factors real timely to get a robust prediction.")
+
 
 
